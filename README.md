@@ -1,5 +1,5 @@
 ## 🍽️ Share My Recipe                            
-A distributed, event-driven backend system for a recipe platform with asynchronous processing using Kafka.
+A distributed, event-driven backend system for a recipe platform with asynchronous processing using Kafka. 
 
 I built this to move beyond basic CRUD operations. The architecture handles recipe processing asynchronously, ensuring the API stays snappy even under heavy database load or high traffic spikes.
 
