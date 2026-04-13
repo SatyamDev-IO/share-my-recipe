@@ -1,6 +1,6 @@
 package com.example.RecipeWorkerService.entity;
 
-import enums.Status;
+import com.example.RecipeWorkerService.enums.Status;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
