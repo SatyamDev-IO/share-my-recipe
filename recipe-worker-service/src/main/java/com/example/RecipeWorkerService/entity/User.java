@@ -1,7 +1,7 @@
 package com.example.RecipeWorkerService.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import enums.Role;
+import com.example.RecipeWorkerService.enums.Role;
 import jakarta.persistence.*;
 
 @Entity
