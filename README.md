@@ -1,10 +1,14 @@
-## 🍽️ Share My Recipe                            
-A distributed, event-driven backend system for a recipe platform with asynchronous processing using Kafka. 
+## 🍽️ Share My Recipe
 
-I built this to move beyond basic CRUD operations. The architecture handles recipe processing asynchronously, ensuring the API stays snappy even under heavy database load or high traffic spikes.
+A distributed, event-driven backend system for a recipe platform using Kafka for asynchronous processing.
 
-🏗️ Architecture
-The system is decoupled into two specialized services to separate concerns and allow for independent scaling.
+This project goes beyond traditional CRUD by decoupling request handling from database persistence. The API remains responsive under load while background workers handle processing reliably.
+
+---
+
+## 🏗️ Architecture
+
+The system is split into two independent services for scalability and fault isolation:
 
 ```mermaid
 graph LR
@@ -23,74 +27,115 @@ graph LR
         W1[Consumer]
         W2[Process DTO]
         W3[Persist to Database]
+        W4[Idempotency Check]
+        W5[Retry + DLQ Handling]
     end
 
     DB[(Database)]
 
-    %% Flow
     Client --> API_Service
     API_Service -->|Recipe Event| Kafka
     Kafka --> W1
-    W1 --> W2
+    W1 --> W4
+    W4 --> W2
     W2 --> W3
     W3 --> DB
 ```
-API Service: Manages JWT Auth, Follows, and Feed generation. When a Chef posts a recipe, the API validates the request, publishes a RecipeDTO to Kafka, and immediately returns 202 Accepted.
 
-Worker Service: Acts as a background consumer. It listens to the recipe-topic, processes the DTO, and handles the actual DB persistence.
+### 🔹 API Service (recipe-api)
 
-## Features                                                                                                                         
-JWT Auth: Full RBAC (Role-Based Access Control) implementation with ROLE_USER, ROLE_CHEF, and ROLE_ADMIN.
+* Handles authentication, follow system, and feed generation
+* Publishes `RecipeDTO` events to Kafka
+* Returns **202 Accepted** immediately (non-blocking)
 
-Async Lifecycle: Recipe creation is decoupled from the DB; state transitions (DRAFT to PUBLISHED) are handled via event streams.
+### 🔹 Worker Service (recipe-worker)
 
-Personalized Feed: High-efficiency retrieval of recipes only from creators a user follows.
+* Consumes events from Kafka
+* Performs idempotency checks to avoid duplicate processing
+* Persists recipes to the database
+* Handles retries and routes failed messages to DLQ
 
-Dynamic Filtering: Implemented Spring Data Specifications for complex searching (keyword search across multiple fields, date range filtering, etc.).
+---
 
-Dockerized: Full multi-container setup including Kafka and MySQL.
+## 🚀 Key Kafka Enhancements (NEW)
 
-Error Handling: Centralized exception handling using a global exception handler for consistent API responses.                       
+* **Retry Mechanism**: Implemented using `DefaultErrorHandler` with configurable backoff (3 retries)
+* **Dead Letter Queue (DLQ)**: Failed messages are routed to `recipe-topic.DLT` after retries
+* **DLQ Consumer**: Dedicated listener to capture and log failed events for manual intervention
+* **Idempotent Consumer**: Ensures duplicate Kafka messages are ignored using `ProcessedEvent` table
+* **Event Keying**: Kafka message key (`eventId`) used for tracking and deduplication
 
-## 🛠️ Tech Stack                                                             
+---
 
-- Java 17 / Spring Boot 3                                              
-- Apache Kafka (KRaft mode, no Zookeeper)                                               
-- MySQL (Persistence Layer)                               
-- Spring Security & JWT                      
-- Docker & Docker Compose                                                                                                
+## Features
 
-## ⚙️ How to Run                                                                                       
-Make sure you have Docker installed and running.
+* **JWT Auth**: Full RBAC implementation with ROLE_USER, ROLE_CHEF, ROLE_ADMIN
+* **Async Lifecycle**: Recipe creation decoupled from DB using Kafka events
+* **Personalized Feed**: Efficient feed generation based on followed chefs
+* **Dynamic Filtering**: Spring Data Specifications for flexible querying
+* **Dockerized Setup**: Kafka, MySQL, and services via Docker Compose
+* **Centralized Error Handling**: Consistent API error responses
 
-Bash
-docker-compose up --build                                                                      
-## 🔗 Key Endpoints                                                                      
-POST /register | POST /signin — Authentication & account setup.
+---
 
-POST /recipes — Recipe creation (Restricted to Chef role).
+## 🛠️ Tech Stack
 
-PUT /recipes/{id}/publish — Transition recipe to live status.
+* Java 17 / Spring Boot 3
+* Apache Kafka (KRaft mode, no Zookeeper)
+* MySQL
+* Spring Security & JWT
+* Docker & Docker Compose
 
-POST /follow/{chefId} — Follow system for feed generation.
+---
 
-GET /feed — Paginated personalized timeline.
+## ⚙️ How to Run
 
-## 🧠 Design Decisions                                                                              
-Why Kafka? By decoupling the write-path, the system is resilient. If the Database or Worker service goes down, the API can still accept recipes, and Kafka will buffer them until the downstream services recover.
+Make sure Docker is running:
 
-Pagination: Handled at the database level using Pageable to ensure the app doesn't fetch unnecessary records into memory.
+```bash
+docker-compose up --build
+```
 
-Scalability: Since the Worker is a separate service, we can spin up multiple instances of the worker to handle high volumes of Kafka messages without touching the API code.
+---
 
-## ⚠️ Future Work                                                                                                     
-Image Service: S3 integration for recipe image uploads and resizing.
+## 🔗 Key Endpoints
 
-Redis: Implementing a caching layer for the Feed API to reduce SQL join overhead.
+* `POST /register` | `POST /signin` — Authentication
+* `POST /recipes` — Create recipe (async via Kafka)
+* `PUT /recipes/{id}/publish` — Publish recipe
+* `POST /follow/{chefId}` — Follow chefs
+* `GET /feed` — Personalized feed
 
-Search: Migrating keyword search to Elasticsearch for better performance on large datasets.                                
+---
 
+## 🧠 Design Decisions
 
-## 💡 Key Takeaway                                                   
+* **Why Kafka?**
+  Decouples API from DB writes → improves resilience and responsiveness
 
-This project demonstrates how to evolve a traditional synchronous CRUD system into an event-driven architecture using Kafka to improve scalability, resilience, and system responsiveness.
+* **Idempotency**
+  Ensures safe reprocessing under at-least-once delivery semantics
+
+* **Retry + DLQ Strategy**
+  Prevents message loss and isolates failed events for debugging
+
+* **Scalability**
+  Worker service can be scaled independently to handle load
+
+* **Pagination**
+  Database-level pagination avoids memory overhead
+
+---
+
+## ⚠️ Future Work
+
+* S3 integration for image uploads
+* Redis caching for feed optimization
+* Elasticsearch for advanced search
+* DLQ reprocessing dashboard / API
+
+---
+
+## 💡 Key Takeaway
+
+This project demonstrates how to evolve a synchronous CRUD system into a resilient, scalable event-driven architecture using Kafka with production-grade patterns like retry, DLQ, and idempotent consumers.
