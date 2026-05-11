@@ -1,4 +1,4 @@
-## 🍽️ Share My Recipe
+## Share My Recipe
 
 A distributed, event-driven backend system for a recipe platform using Kafka for asynchronous processing.
 
@@ -6,7 +6,7 @@ This project goes beyond traditional CRUD by decoupling request handling from da
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 The system is split into two independent services for scalability and fault isolation:
 
@@ -42,13 +42,13 @@ graph LR
     W3 --> DB
 ```
 
-### 🔹 API Service (recipe-api)
+### API Service (recipe-api)
 
 * Handles authentication, follow system, and feed generation
 * Publishes `RecipeDTO` events to Kafka
 * Returns **202 Accepted** immediately (non-blocking)
 
-### 🔹 Worker Service (recipe-worker)
+### Worker Service (recipe-worker)
 
 * Consumes events from Kafka
 * Performs idempotency checks to avoid duplicate processing
@@ -57,7 +57,7 @@ graph LR
 
 ---
 
-## 🚀 Key Kafka Enhancements (NEW)
+## Key Kafka Enhancements (NEW)
 
 * **Retry Mechanism**: Implemented using `DefaultErrorHandler` with configurable backoff (3 retries)
 * **Dead Letter Queue (DLQ)**: Failed messages are routed to `recipe-topic.DLT` after retries
@@ -78,7 +78,7 @@ graph LR
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 * Java 17 / Spring Boot 3
 * Apache Kafka (KRaft mode, no Zookeeper)
@@ -88,7 +88,7 @@ graph LR
 
 ---
 
-## ⚙️ How to Run
+## How to Run
 
 Make sure Docker is running:
 
@@ -98,7 +98,7 @@ docker-compose up --build
 
 ---
 
-## 🔗 Key Endpoints
+## Key Endpoints
 
 * `POST /register` | `POST /signin` — Authentication
 * `POST /recipes` — Create recipe (async via Kafka)
@@ -108,7 +108,7 @@ docker-compose up --build
 
 ---
 
-## 🧠 Design Decisions
+## Design Decisions
 
 * **Why Kafka?**
   Decouples API from DB writes → improves resilience and responsiveness
@@ -127,7 +127,7 @@ docker-compose up --build
 
 ---
 
-## ⚠️ Future Work
+## Future Work
 
 * S3 integration for image uploads
 * Redis caching for feed optimization
@@ -136,6 +136,6 @@ docker-compose up --build
 
 ---
 
-## 💡 Key Takeaway
+## Key Takeaway
 
 This project demonstrates how to evolve a synchronous CRUD system into a resilient, scalable event-driven architecture using Kafka with production-grade patterns like retry, DLQ, and idempotent consumers.
